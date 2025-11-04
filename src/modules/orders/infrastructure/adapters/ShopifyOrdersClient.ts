@@ -17,7 +17,7 @@ export class ShopifyOrdersClient {
   }
 
   async fetchPage(params: { pageInfo?: string; limit: number; query?: Record<string, string> }): Promise<{ orders: unknown[]; nextPageInfo?: string; raw: ApiResponse<ShopifyOrdersResponse> }> {
-    const query: Record<string, string> = { limit: String(params.limit), ...(params.query ?? {}) };
+    const query: Record<string, string> = { limit: '1', ...(params.query ?? {}) };
     if (params.pageInfo) query.page_info = params.pageInfo;
     const response = await this.api.get<ShopifyOrdersResponse>('/orders.json', query);
     if (!response.ok) {

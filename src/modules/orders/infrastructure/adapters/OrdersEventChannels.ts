@@ -1,10 +1,15 @@
 export const EventChannels = {
-  ORDERS_SYNC_REQUEST: 'commerce.orders.sync.request.v1',
-  ORDERS_PAGE_REQUEST: 'commerce.orders.page.request.v1',
-  ORDERS_PAGE_FETCHED: 'commerce.orders.page.fetched.v1',
-  ORDERS_NORMALIZED: 'commerce.orders.normalized.v1',
-  ORDERS_RETRY: 'commerce.orders.retry.v1',
-  ORDERS_DLQ: 'commerce.orders.dlq.v1'
+  // Requested naming
+  ORDERS_SYNC_REQUEST: 'orders.sync.requested',
+  ORDERS_PAGE_REQUEST: 'orders.sync.page.requested',
+
+  // Keep property name but align value to "processed"
+  ORDERS_PAGE_FETCHED: 'orders.sync.page.processed',
+  ORDERS_SYNC_COMPLETED: 'orders.sync.completed',
+
+  // Retry/DLQ scoped to page processing
+  ORDERS_RETRY: 'orders.sync.page.retry',
+  ORDERS_DLQ: 'orders.sync.page.dlq'
 } as const;
 
 

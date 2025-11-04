@@ -8,12 +8,12 @@ KAFKA_BROKER=${KAFKA_BROKERS:-localhost:9092}
 echo "Creating Kafka topics on $KAFKA_BROKER..."
 
 topics=(
-  "commerce.orders.sync.request.v1"
-  "commerce.orders.page.request.v1"
-  "commerce.orders.page.fetched.v1"
-  "commerce.orders.normalized.v1"
-  "commerce.orders.retry.v1"
-  "commerce.orders.dlq.v1"
+  "orders.sync.requested"
+  "orders.sync.page.requested"
+  "orders.sync.page.processed"
+  "orders.sync.completed"
+  "orders.sync.page.retry"
+  "orders.sync.page.dlq"
 )
 
 for topic in "${topics[@]}"; do

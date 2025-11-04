@@ -17,13 +17,14 @@ import { HandleOrdersRetryUseCase } from '../../application/handle-orders-retry.
 import { ProcessOrdersPageUseCase } from '../../application/process-orders-page.usecase';
 import { OrdersSyncWorker } from '../../gateway/events/orders-sync.worker';
 import { MongoOrdersRepository } from '../persistence/MongoOrdersRepository/MongoOrdersRepository';
+import { MongoSyncJobsRepository } from '../persistence/MongoSyncJobsRepository/MongoSyncJobsRepository';
 import { ordersSwagger } from '../../gateway/http/swagger';
 import { createOrdersRouter } from '../../gateway/http/routes';
 
 export function registerOrdersModule(container: Container): void {
   // Config
   container.bind<OrdersSyncWorkerConfig>(TYPES.OrdersSyncWorkerConfig).toConstantValue({
-    groupId: process.env.KAFKA_ORDERS_GROUP ?? 'orders.sync.v1',
+    groupId: process.env.KAFKA_ORDERS_GROUP ?? 'orders-sync-worker.v1',
     pageLimit: Number(process.env.SHOPIFY_ORDERS_LIMIT ?? '100'),
     requestDelayMs: Number(process.env.SHOPIFY_REQUEST_DELAY_MS ?? '0'),
     maxRetries: Number(process.env.WORKER_RETRY_MAX ?? '5')
@@ -42,6 +43,7 @@ export function registerOrdersModule(container: Container): void {
 
   // Ports & Adapters
   container.bind(TYPES.OrdersRepositoryPort).to(MongoOrdersRepository);
+  container.bind(TYPES.SyncJobsRepositoryPort).to(MongoSyncJobsRepository);
   container.bind(TYPES.OrdersExternalServiceEventPort).to(OrdersExternalServiceEvent);
   container.bind(TYPES.OrdersProviderPort).to(ShopifyOrdersProvider);
   container.bind(SHARED_TYPES.HttpClient).to(ShopifyOrdersClient);

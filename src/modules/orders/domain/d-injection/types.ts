@@ -4,5 +4,6 @@ export const TYPES = {
   OrdersQueryPort: Symbol.for('OrdersQueryPort'),
   OrdersExternalServiceEventPort: Symbol.for('OrdersExternalServiceEventPort'),
   OrdersSyncWorkerConfig: Symbol.for('OrdersSyncWorkerConfig'),
-  RequestOrdersSyncUseCase: Symbol.for('RequestOrdersSyncUseCase')
+  RequestOrdersSyncUseCase: Symbol.for('RequestOrdersSyncUseCase'),
+  SyncJobsRepositoryPort: Symbol.for('SyncJobsRepositoryPort')
 };

@@ -5,6 +5,7 @@ import type { IEventBus } from '../../shared/application/ports/IEventBus';
 import { EventChannels as Topics } from '../infrastructure/adapters/OrdersEventChannels';
 import { TYPES as SHARED_TYPES } from '../../shared/domain/d-injection/types';
 import { TYPES as ORDERS_TYPES } from '../domain/d-injection/types';
+import type { SyncJobsRepositoryPort } from '../domain/ports/SyncJobsRepositoryPort';
 import type { OrdersRepositoryPort } from '../domain/ports/OrdersRepositoryPort';
 import type { Order } from '../domain/order/Order';
 
@@ -13,7 +14,8 @@ export class ProcessOrdersPageUseCase {
   constructor(
     @inject(SHARED_TYPES.Logger) private readonly logger: Logger,
     @inject(SHARED_TYPES.EventBus) private readonly eventBus: IEventBus,
-    @inject(ORDERS_TYPES.OrdersRepositoryPort) private readonly ordersRepository: OrdersRepositoryPort
+    @inject(ORDERS_TYPES.OrdersRepositoryPort) private readonly ordersRepository: OrdersRepositoryPort,
+    @inject(ORDERS_TYPES.SyncJobsRepositoryPort) private readonly jobs: SyncJobsRepositoryPort
   ) {}
 
   async execute(params: { shopId: string; orders: Order[]; nextPageInfo?: string }): Promise<void> {
@@ -26,6 +28,7 @@ export class ProcessOrdersPageUseCase {
 
     if (params.nextPageInfo) {
       this.logger.info({ shopId: params.shopId, nextPageInfo: params.nextPageInfo }, 'Requesting next page of orders');
+      await this.jobs.markPageProcessed(params.shopId, params.nextPageInfo);
       const pageLimit = Number(process.env.SHOPIFY_ORDERS_LIMIT ?? '100');
       await this.eventBus.publish({
         topic: Topics.ORDERS_PAGE_REQUEST,
@@ -38,6 +41,12 @@ export class ProcessOrdersPageUseCase {
       });
     } else {
       this.logger.info({ shopId: params.shopId }, 'Order sync finished for shop');
+      await this.jobs.markCompleted(params.shopId);
+      await this.eventBus.publish({
+        topic: Topics.ORDERS_SYNC_COMPLETED,
+        key: params.shopId,
+        payload: { shopId: params.shopId }
+      });
     }
   }
 }

@@ -18,9 +18,6 @@ export class HandleOrdersPageRequestUseCase {
     const { orders, nextPageInfo } = await this.orderProvider.fetchPage({ shopId: params.shopId, pageInfo: params.pageInfo, limit: params.limit });
     this.logger.info({ shopId: params.shopId, nextPageInfo, count: orders.length }, 'orders.page-request.fetched');
     await this.eventBus.publish({ topic: Topics.ORDERS_PAGE_FETCHED, key: params.shopId, payload: { shopId: params.shopId, orders, nextPageInfo } });
-    if (nextPageInfo) {
-      await this.eventBus.publish({ topic: Topics.ORDERS_PAGE_REQUEST, key: params.shopId, payload: { shopId: params.shopId, pageInfo: nextPageInfo, limit: params.limit } });
-    }
   }
 }
 
