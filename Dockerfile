@@ -2,7 +2,7 @@ FROM node:22.19.0-bullseye-slim
 
 WORKDIR /app
 
-COPY package.json yarn.lock ./
+COPY package.json yarn.lock .yarnrc.yml ./
 RUN corepack enable && yarn install --immutable
 
 COPY . .
