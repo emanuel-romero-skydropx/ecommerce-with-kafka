@@ -18,7 +18,6 @@
     "http:sync": "bash scripts/http-sync-demo.sh"
   },
   "dependencies": {
-    "@kafkajs/zstd": "^0.1.1",
     "@koa/router": "^14.0.0",
     "@types/mongoose": "^5.11.97",
     "apisauce": "^3.2.1",
