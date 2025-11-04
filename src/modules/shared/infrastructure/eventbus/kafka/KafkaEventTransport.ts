@@ -1,6 +1,7 @@
 import { inject, injectable } from 'inversify';
 import type { Logger } from 'pino';
 import type { Kafka } from 'kafkajs';
+
 import type { EventTransport, TransportHandler, TransportMessage } from '../../../application/ports/EventTransport';
 import { TYPES as SHARED_TYPES } from '../../../domain/d-injection/types';
 import { KafkaProducer } from './KafkaProducer';

@@ -1,4 +1,5 @@
 import type { Context } from 'koa';
+
 import { ordersSyncRequestSchema } from '../dtos/orders-sync.dto';
 import type { CommandBus } from '../../../shared/application/ports/CommandBus';
 import { RequestOrdersSyncCommand } from '../../application/orders-sync/command';

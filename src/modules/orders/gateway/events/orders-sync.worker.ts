@@ -1,6 +1,7 @@
 import 'reflect-metadata';
 import type { Logger } from 'pino';
 import type { Container } from 'inversify';
+
 import { TYPES as ORDERS_TYPES } from '../../domain/d-injection/types';
 import type { OrdersProviderPort } from '../../domain/ports/OrdersProviderPort';
 import { TYPES as SHARED_TYPES } from '../../../shared/domain/d-injection/types';

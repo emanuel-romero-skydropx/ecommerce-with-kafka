@@ -1,4 +1,5 @@
 import { inject, injectable } from 'inversify';
+
 import type { ApisauceInstance, ApiResponse } from 'apisauce';
 import { TYPES as SHARED_TYPES } from '../../../shared/domain/d-injection/types';
 import type { HttpClient } from '../../../shared/infrastructure/http/httpClient';

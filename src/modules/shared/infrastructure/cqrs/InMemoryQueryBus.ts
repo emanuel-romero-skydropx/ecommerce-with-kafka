@@ -20,9 +20,9 @@ export class InMemoryQueryBus implements QueryBus {
   }
 
   async ask<Q extends Query<R>, R>(query: Q): Promise<R> {
-    const name = (query as any)?.constructor?.name ?? 'UnknownQuery';
+    const name = query?.constructor?.name ?? 'UnknownQuery';
     this.logger.info({ query: name }, 'ask query');
-    const handler = this.handlersByName.get(name) as QueryHandler<any, R> | undefined;
+    const handler = this.handlersByName.get(name) as any;
     if (!handler) throw new Error(`No handler registered for query: ${name}`);
     return await handler.execute(query);
   }

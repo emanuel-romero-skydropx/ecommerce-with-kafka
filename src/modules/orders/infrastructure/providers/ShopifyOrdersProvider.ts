@@ -1,4 +1,5 @@
 import { injectable, inject } from 'inversify';
+
 import type { OrdersProviderPort } from '../../domain/ports/OrdersProviderPort';
 import type { RequestExecutorPort } from '../../../shared/domain/ports/RequestExecutorPort';
 import type { PaginationStrategyPort } from '../../../shared/domain/ports/PaginationStrategyPort';
@@ -21,6 +22,7 @@ export class ShopifyOrdersProvider implements OrdersProviderPort {
     const response = await this.executor.execute<{ orders: Array<{ id: number | string; created_at?: string }> }>(spec);
     const orders = this.orderMapper.toDomain(response.data as { orders: Array<{ id: number | string; created_at?: string }> });
     const nextPageInfo = this.strategy.getNextCursor(response);
+
     return { orders, nextPageInfo };
   }
 }

@@ -1,5 +1,6 @@
 import { inject, injectable, multiInject } from 'inversify';
 import type { Logger } from 'pino';
+
 import type { Command } from '../../application/ports/Command';
 import type { CommandBus } from '../../application/ports/CommandBus';
 import type { CommandHandler } from '../../application/ports/CommandHandler';
@@ -20,7 +21,7 @@ export class InMemoryCommandBus implements CommandBus {
   }
 
   async dispatch<C extends Command>(command: C): Promise<void> {
-    const name = (command as any)?.constructor?.name ?? 'UnknownCommand';
+    const name = command?.constructor?.name ?? 'UnknownCommand';
     this.logger.info({ command: name }, 'dispatch command');
     const handler = this.handlersByName.get(name);
     if (!handler) throw new Error(`No handler registered for command: ${name}`);

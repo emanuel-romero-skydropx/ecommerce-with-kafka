@@ -1,5 +1,6 @@
 import type { Kafka } from 'kafkajs';
 import type { Logger } from 'pino';
+
 import type { Lifecycle } from '../../../application/ports/Lifecycle';
 
 export type MessageContext = {

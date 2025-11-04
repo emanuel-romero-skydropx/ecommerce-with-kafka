@@ -1,5 +1,6 @@
 import Router from '@koa/router';
 import type { Container } from 'inversify';
+
 import { OrdersRoutesRegistrar } from '../routes/index';
 import { OrdersPostController } from '../controllers/orders.post.controller';
 import type { CommandBus } from '../../../shared/application/ports/CommandBus';

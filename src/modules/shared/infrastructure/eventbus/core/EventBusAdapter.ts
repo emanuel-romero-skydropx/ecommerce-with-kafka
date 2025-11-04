@@ -1,5 +1,6 @@
 import { inject, injectable } from 'inversify';
 import type { Logger } from 'pino';
+
 import type { EventBus, EventHandler, EventMessage } from '../../../application/ports/EventBus';
 import type { EventTransport } from '../../../application/ports/EventTransport';
 import { TYPES as SHARED_TYPES } from '../../../domain/d-injection/types';
