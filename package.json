@@ -15,6 +15,7 @@
     "start": "node dist/index.js",
     "lint": "eslint .",
     "topics:create": "bash scripts/create-kafka-topics.sh",
+    "topics:scale": "bash scripts/scale-kafka-partitions.sh",
     "http:sync": "bash scripts/http-sync-demo.sh"
   },
   "dependencies": {
