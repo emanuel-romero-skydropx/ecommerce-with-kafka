@@ -6,7 +6,6 @@ export class HttpClient {
   }
 }
 
-// Backwards-compatible helper
 export function createHttpClient(baseURL: string): ApisauceInstance {
   return new HttpClient().base(baseURL);
 }

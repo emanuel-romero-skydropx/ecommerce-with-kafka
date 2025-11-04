@@ -24,31 +24,32 @@ export class KafkaConsumer implements Lifecycle {
   }
 
   async start(options?: unknown): Promise<void> {
-    const opts = options as { groupId: string; topics: string[]; handlers: Record<string, TopicHandler> };
-    if (this.started) {
-      this.logger?.debug?.({ groupId: opts?.groupId }, 'kafka.consumer.start.skip');
-      return;
-    }
-    this.logger?.info?.({ groupId: opts.groupId, topics: opts.topics }, 'kafka.consumer.start');
-    const consumer = this.kafka.consumer({ groupId: opts.groupId });
+    const { groupId, topics, handlers } = options as { groupId: string; topics: string[]; handlers: Record<string, TopicHandler> };
+    if (this.started) return;
+
+    const consumer = this.kafka.consumer({ groupId });
     this.consumer = consumer;
     await consumer.connect();
-    for (const topic of opts.topics) {
+    this.logger?.info?.({ groupId, topics }, 'kafka.consumer.start');
+
+    for (const topic of topics) {
       this.logger?.info?.({ topic }, 'kafka.consumer.subscribe');
       await consumer.subscribe({ topic });
     }
+
     await consumer.run({
       eachMessage: async ({ topic, partition, message }) => {
         try {
-          const handler = opts.handlers[topic];
-          if (!handler) return;
-          if (!message.value) return;
-          const keyText = message.key?.toString();
-          this.logger?.info?.({ topic, partition, key: keyText }, 'kafka.consumer.message.received');
-          await handler({ topic, partition, key: keyText, value: message.value });
-        } catch (err) {
-          const msg = err instanceof Error ? err.message : String(err);
-          this.logger?.error?.({ err: msg, topic }, 'consumer handler error');
+          const handler = handlers[topic];
+          if (!handler || !message.value) return;
+
+          const key = message.key?.toString();
+          this.logger?.info?.({ topic, partition, key }, 'kafka.consumer.message.received');
+
+          await handler({ topic, partition, key, value: message.value });
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error);
+          this.logger?.error?.({ error: message, topic }, 'consumer handler error');
         }
       }
     });

@@ -1,4 +1,4 @@
-import type { IdempotencyStorePort } from '../../application/ports/IdempotencyStorePort';
+import type { IdempotencyStorePort } from '../../domain/ports/IdempotencyStorePort';
 
 type Stored = { expiresAt?: number };
 

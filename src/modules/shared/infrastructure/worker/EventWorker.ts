@@ -1,31 +1,32 @@
 import type { Logger } from 'pino';
 import type { Lifecycle } from '../../application/ports/Lifecycle';
-import type { EventBus, EventHandler, EventMessage } from '../../application/ports/EventBus';
+import type { IEventBus, EventHandler, EventMessage } from '../../application/ports/IEventBus';
 
 type EventWorkerOptions = {
   name: string;
   groupId: string;
   logger: Logger;
-  eventBus: EventBus;
+  eventBus: IEventBus;
 };
 
 export abstract class EventWorker implements Lifecycle {
-  private readonly workerName: string;
   protected readonly groupId: string;
   protected readonly logger: Logger;
-  protected readonly eventBus: EventBus;
+  protected readonly eventBus: IEventBus;
+
+  private readonly worker: string;
   private started = false;
   private configured = false;
 
   constructor(options: EventWorkerOptions) {
-    this.workerName = options.name;
+    this.worker = options.name;
     this.groupId = options.groupId;
     this.logger = options.logger;
     this.eventBus = options.eventBus;
   }
 
   get name(): string {
-    return this.workerName;
+    return this.worker;
   }
 
   protected configure(): void {}
@@ -45,10 +46,10 @@ export abstract class EventWorker implements Lifecycle {
 
   async start(): Promise<void> {
     if (this.started) {
-      this.logger.debug?.({ name: this.workerName }, 'event.worker.start.skip');
+      this.logger.debug?.({ name: this.worker }, 'event.worker.start.skip');
       return;
     }
-    this.logger.info?.({ name: this.workerName }, 'event.worker.start');
+    this.logger.info?.({ name: this.worker }, 'event.worker.start');
     if (!this.configured) {
       this.configure();
       this.configured = true;
@@ -59,7 +60,7 @@ export abstract class EventWorker implements Lifecycle {
 
   async stop(): Promise<void> {
     try {
-      this.logger.info?.({ name: this.workerName }, 'event.worker.stop');
+      this.logger.info?.({ name: this.worker }, 'event.worker.stop');
       await this.eventBus.stop();
     } finally {
       this.started = false;

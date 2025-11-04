@@ -8,7 +8,7 @@ export type EventHandler<T = unknown> = (message: EventMessage<T>) => Promise<vo
 
 import type { Lifecycle } from './Lifecycle';
 
-export interface EventBus extends Lifecycle {
+export interface IEventBus extends Lifecycle {
   publish<T = unknown>(message: EventMessage<T>): Promise<void>;
   subscribe<T = unknown>(topic: string, handler: EventHandler<T>): void;
 }

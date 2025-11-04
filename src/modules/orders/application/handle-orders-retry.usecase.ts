@@ -1,13 +1,13 @@
 import { inject, injectable } from 'inversify';
 import type { Logger } from 'pino';
-import type { EventBus } from '../../shared/application/ports/EventBus';
+import type { IEventBus } from '../../shared/application/ports/IEventBus';
 import { TYPES as SHARED_TYPES } from '../../shared/domain/d-injection/types';
 import { computeExponentialBackoff, type RetryEnvelope } from '../../shared/infrastructure/messaging/retry';
 
 @injectable()
 export class HandleOrdersRetryUseCase {
   constructor(
-    @inject(SHARED_TYPES.EventBus) private readonly eventBus: EventBus,
+    @inject(SHARED_TYPES.EventBus) private readonly eventBus: IEventBus,
     @inject(SHARED_TYPES.Logger) private readonly logger: Logger
   ) {}
 

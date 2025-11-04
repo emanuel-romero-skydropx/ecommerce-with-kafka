@@ -8,7 +8,7 @@ import { TYPES as SHARED_TYPES } from '../../domain/d-injection/types';
 
 @injectable()
 export class InMemoryCommandBus implements CommandBus {
-  private readonly handlersByName = new Map<string, CommandHandler>();
+  private readonly handlers = new Map<string, CommandHandler>();
 
   constructor(
     @multiInject(SHARED_TYPES.CommandHandler) handlers: CommandHandler[],
@@ -16,15 +16,17 @@ export class InMemoryCommandBus implements CommandBus {
   ) {
     for (const handler of handlers) {
       const name = handler.commandType.name;
-      this.handlersByName.set(name, handler);
+      this.handlers.set(name, handler);
     }
   }
 
   async dispatch<C extends Command>(command: C): Promise<void> {
     const name = command?.constructor?.name ?? 'UnknownCommand';
     this.logger.info({ command: name }, 'dispatch command');
-    const handler = this.handlersByName.get(name);
+
+    const handler = this.handlers.get(name);
     if (!handler) throw new Error(`No handler registered for command: ${name}`);
+
     await handler.handle(command);
   }
 }

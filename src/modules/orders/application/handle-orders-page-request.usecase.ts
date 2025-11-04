@@ -1,6 +1,6 @@
 import { inject, injectable } from 'inversify';
 import type { Logger } from 'pino';
-import type { EventBus } from '../../shared/application/ports/EventBus';
+import type { IEventBus } from '../../shared/application/ports/IEventBus';
 import { TYPES as SHARED_TYPES } from '../../shared/domain/d-injection/types';
 import type { OrdersProviderPort } from '../domain/ports/OrdersProviderPort';
 import { TYPES as ORDERS_TYPES } from '../domain/d-injection/types';
@@ -11,7 +11,7 @@ export class HandleOrdersPageRequestUseCase {
   constructor(
     @inject(SHARED_TYPES.Logger) private readonly logger: Logger,
     @inject(ORDERS_TYPES.OrdersProviderPort) private readonly orderProvider: OrdersProviderPort,
-    @inject(SHARED_TYPES.EventBus) private readonly eventBus: EventBus
+    @inject(SHARED_TYPES.EventBus) private readonly eventBus: IEventBus
   ) {}
 
   async execute(params: { shopId: string; pageInfo?: string; limit: number; retryCount?: number }): Promise<void> {

@@ -24,8 +24,10 @@ export class KafkaProducer implements Lifecycle {
       this.logger?.debug?.('kafka.producer.start.skip');
       return;
     }
+
     this.logger?.info?.('kafka.producer.start');
     await this.producer.connect();
+
     this.started = true;
   }
 
@@ -45,6 +47,7 @@ export class KafkaProducer implements Lifecycle {
   async send(params: PublishMessageParams): Promise<void> {
     const { topic, key, value, acks = -1, compression = CompressionTypes.GZIP } = params;
     this.logger?.info?.({ topic, key }, 'kafka.producer.send');
+
     await this.producer.send({ topic, acks, compression, messages: [{ key, value }] });
   }
 }

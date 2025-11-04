@@ -1,5 +1,6 @@
 import 'reflect-metadata';
 import type Router from '@koa/router';
+
 import { createHttpApp } from './drivers/http/server';
 import { buildContainer } from './app';
 import { loadEnv } from './modules/shared/infrastructure/config/env';

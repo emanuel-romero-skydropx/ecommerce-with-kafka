@@ -1,5 +1,6 @@
 import 'reflect-metadata';
 import { Container } from 'inversify';
+
 import { createLogger } from './modules/shared/infrastructure/logging/logger';
 import { createKafkaClient } from './modules/shared/infrastructure/kafka/kafkaClient';
 import { HttpClient } from './modules/shared/infrastructure/http/httpClient';
@@ -10,7 +11,7 @@ import { registerOrdersModule } from './modules/orders/infrastructure/bootstrap/
 import { RequestExecutorAdapter } from './modules/shared/infrastructure/http/RequestExecutorAdapter';
 import { InMemoryCommandBus } from './modules/shared/infrastructure/cqrs/InMemoryCommandBus';
 import { InMemoryQueryBus } from './modules/shared/infrastructure/cqrs/InMemoryQueryBus';
-import { EventBusAdapter } from './modules/shared/infrastructure/eventbus/core/EventBusAdapter';
+import { EventBus } from './modules/shared/infrastructure/eventbus/EventBus';
 import { KafkaEventTransport } from './modules/shared/infrastructure/eventbus/kafka/KafkaEventTransport';
 
 export function buildContainer(): Container {
@@ -36,7 +37,7 @@ export function buildContainer(): Container {
   container.bind(SHARED_TYPES.CommandBus).to(InMemoryCommandBus);
   container.bind(SHARED_TYPES.QueryBus).to(InMemoryQueryBus);
   container.bind(SHARED_TYPES.EventTransport).to(KafkaEventTransport);
-  container.bind(SHARED_TYPES.EventBus).to(EventBusAdapter);
+  container.bind(SHARED_TYPES.EventBus).to(EventBus);
 
   registerOrdersModule(container);
 

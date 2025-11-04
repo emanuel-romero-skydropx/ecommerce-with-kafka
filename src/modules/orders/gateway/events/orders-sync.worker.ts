@@ -7,16 +7,16 @@ import type { OrdersProviderPort } from '../../domain/ports/OrdersProviderPort';
 import { TYPES as SHARED_TYPES } from '../../../shared/domain/d-injection/types';
 import type { IdempotencyStorePort } from '../../../shared/domain/ports/IdempotencyStorePort';
 import type { RetryEnvelope } from '../../../shared/infrastructure/messaging/retry';
-import type { EventBus, EventMessage } from '../../../shared/application/ports/EventBus';
+import type { IEventBus, EventMessage } from '../../../shared/application/ports/IEventBus';
 import { EventWorker } from '../../../shared/infrastructure/worker/EventWorker';
 import { EventChannels as Topics } from '../../infrastructure/adapters/OrdersEventChannels';
 import { HandleOrdersSyncRequestedUseCase } from '../../application/handle-orders-sync-requested.usecase';
 import { HandleOrdersPageRequestUseCase } from '../../application/handle-orders-page-request.usecase';
 import { HandleOrdersRetryUseCase } from '../../application/handle-orders-retry.usecase';
 import { ProcessOrdersPageUseCase } from '../../application/process-orders-page.usecase';
-import { createIdempotencyMiddleware } from '../../../shared/infrastructure/worker/middlewares/IdempotencyMiddleware';
-import { createDelayMiddleware } from '../../../shared/infrastructure/worker/middlewares/DelayMiddleware';
-import { createRetryMiddleware } from '../../../shared/infrastructure/worker/middlewares/RetryMiddleware';
+import { idempotencyMiddleware } from '../../../shared/infrastructure/worker/middlewares/IdempotencyMiddleware';
+import { delayMiddleware } from '../../../shared/infrastructure/worker/middlewares/DelayMiddleware';
+import { retryMiddleware } from '../../../shared/infrastructure/worker/middlewares/RetryMiddleware';
 
 type OrdersSyncRequest = { shopId: string; pages?: number };
 type OrdersPageRequest = { shopId: string; pageInfo?: string; limit: number; retryCount?: number };
@@ -24,7 +24,7 @@ type OrdersPageRequest = { shopId: string; pageInfo?: string; limit: number; ret
 export class OrdersSyncWorker extends EventWorker {
   constructor(
     logger: Logger,
-    eventBus: EventBus,
+    eventBus: IEventBus,
     groupId: string,
     private readonly onSyncRequested: HandleOrdersSyncRequestedUseCase,
     private readonly onPageRequest: HandleOrdersPageRequestUseCase,
@@ -58,7 +58,7 @@ export class OrdersSyncWorker extends EventWorker {
     this.onWith(
       Topics.ORDERS_SYNC_REQUEST,
       this.handleSyncRequest,
-      createRetryMiddleware({
+      retryMiddleware({
         logger: this.logger,
         eventBus: this.eventBus,
         retryTopic: Topics.ORDERS_RETRY,
@@ -70,9 +70,9 @@ export class OrdersSyncWorker extends EventWorker {
     this.onWith(
       Topics.ORDERS_PAGE_REQUEST,
       this.handlePageRequest,
-      createIdempotencyMiddleware(this.idempotency, this.logger, (p: OrdersPageRequest) => `${p.shopId}|${p.pageInfo ?? 'FIRST'}`),
-      createDelayMiddleware(this.requestDelayMs),
-      createRetryMiddleware({
+      idempotencyMiddleware(this.idempotency, this.logger, (p: OrdersPageRequest) => `${p.shopId}|${p.pageInfo ?? 'FIRST'}`),
+      delayMiddleware(this.requestDelayMs),
+      retryMiddleware({
         logger: this.logger,
         eventBus: this.eventBus,
         retryTopic: Topics.ORDERS_RETRY,
@@ -89,7 +89,7 @@ export class OrdersSyncWorker extends EventWorker {
 
 export function createOrdersSyncWorker(container: Container) {
   const logger = container.get<Logger>(SHARED_TYPES.Logger);
-  const eventBus = container.get<EventBus>(SHARED_TYPES.EventBus);
+  const eventBus = container.get<IEventBus>(SHARED_TYPES.EventBus);
   const provider = container.get<OrdersProviderPort>(ORDERS_TYPES.OrdersProviderPort);
   const idempotency = container.get<IdempotencyStorePort>(SHARED_TYPES.IdempotencyStorePort);
   const groupId = process.env.KAFKA_ORDERS_GROUP ?? 'orders.sync.v1';
