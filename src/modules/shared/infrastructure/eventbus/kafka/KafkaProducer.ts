@@ -45,7 +45,7 @@ export class KafkaProducer implements Lifecycle {
   }
 
   async send(params: PublishMessageParams): Promise<void> {
-    const { topic, key, value, acks = -1, compression = CompressionTypes.GZIP } = params;
+    const { topic, key, value, acks = -1, compression = CompressionTypes.ZSTD } = params;
     this.logger?.info?.({ topic, key }, 'kafka.producer.send');
 
     await this.producer.send({ topic, acks, compression, messages: [{ key, value }] });

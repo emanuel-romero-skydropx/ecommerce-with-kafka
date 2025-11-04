@@ -1,9 +1,9 @@
 import 'reflect-metadata';
+import { inject, injectable } from 'inversify';
 import type { Logger } from 'pino';
 import type { Container } from 'inversify';
 
 import { TYPES as ORDERS_TYPES } from '../../domain/d-injection/types';
-import type { OrdersProviderPort } from '../../domain/ports/OrdersProviderPort';
 import { TYPES as SHARED_TYPES } from '../../../shared/domain/d-injection/types';
 import type { IdempotencyStorePort } from '../../../shared/domain/ports/IdempotencyStorePort';
 import type { RetryEnvelope } from '../../../shared/infrastructure/messaging/retry';
@@ -17,24 +17,41 @@ import { ProcessOrdersPageUseCase } from '../../application/process-orders-page.
 import { idempotencyMiddleware } from '../../../shared/infrastructure/worker/middlewares/IdempotencyMiddleware';
 import { delayMiddleware } from '../../../shared/infrastructure/worker/middlewares/DelayMiddleware';
 import { retryMiddleware } from '../../../shared/infrastructure/worker/middlewares/RetryMiddleware';
+import type { OrdersSyncWorkerConfig } from '../../domain/config/worker.config';
+import type { Order } from '../../domain/order/Order';
 
 type OrdersSyncRequest = { shopId: string; pages?: number };
 type OrdersPageRequest = { shopId: string; pageInfo?: string; limit: number; retryCount?: number };
+type OrdersPageFetched = { shopId: string; orders: Order[]; nextPageInfo?: string };
 
+@injectable()
 export class OrdersSyncWorker extends EventWorker {
+  private readonly idempotency: IdempotencyStorePort;
+  private readonly requestDelayMs: number;
+  private readonly maxRetries: number;
+  private readonly onSyncRequested: HandleOrdersSyncRequestedUseCase;
+  private readonly onPageRequest: HandleOrdersPageRequestUseCase;
+  private readonly onRetry: HandleOrdersRetryUseCase;
+  private readonly onPageFetched: ProcessOrdersPageUseCase;
+
   constructor(
-    logger: Logger,
-    eventBus: IEventBus,
-    groupId: string,
-    private readonly onSyncRequested: HandleOrdersSyncRequestedUseCase,
-    private readonly onPageRequest: HandleOrdersPageRequestUseCase,
-    private readonly onRetry: HandleOrdersRetryUseCase,
-    private readonly onPageFetched: ProcessOrdersPageUseCase,
-    private readonly idempotency: IdempotencyStorePort,
-    private readonly requestDelayMs: number,
-    private readonly maxRetries: number
+    @inject(SHARED_TYPES.Logger) logger: Logger,
+    @inject(SHARED_TYPES.EventBus) eventBus: IEventBus,
+    @inject(SHARED_TYPES.IdempotencyStorePort) idempotency: IdempotencyStorePort,
+    @inject(ORDERS_TYPES.OrdersSyncWorkerConfig) config: OrdersSyncWorkerConfig,
+    @inject(HandleOrdersSyncRequestedUseCase) onSyncRequested: HandleOrdersSyncRequestedUseCase,
+    @inject(HandleOrdersPageRequestUseCase) onPageRequest: HandleOrdersPageRequestUseCase,
+    @inject(HandleOrdersRetryUseCase) onRetry: HandleOrdersRetryUseCase,
+    @inject(ProcessOrdersPageUseCase) onPageFetched: ProcessOrdersPageUseCase
   ) {
-    super({ name: 'orders-sync-worker', logger, eventBus, groupId });
+    super({ name: 'orders-sync-worker', logger, eventBus, groupId: config.groupId });
+    this.idempotency = idempotency;
+    this.requestDelayMs = config.requestDelayMs;
+    this.maxRetries = config.maxRetries;
+    this.onSyncRequested = onSyncRequested;
+    this.onPageRequest = onPageRequest;
+    this.onRetry = onRetry;
+    this.onPageFetched = onPageFetched;
   }
 
   private readonly handleSyncRequest = async ({ payload }: EventMessage<OrdersSyncRequest>) => {
@@ -49,7 +66,7 @@ export class OrdersSyncWorker extends EventWorker {
     await this.onRetry.execute(envelope);
   };
 
-  private readonly handlePageFetched = async ({ payload }: EventMessage<{ shopId: string; orders: unknown[]; nextPageInfo?: string }>) => {
+  private readonly handlePageFetched = async ({ payload }: EventMessage<OrdersPageFetched>) => {
     await this.onPageFetched.execute(payload);
   };
 
@@ -87,18 +104,6 @@ export class OrdersSyncWorker extends EventWorker {
   }
 }
 
-export function createOrdersSyncWorker(container: Container) {
-  const logger = container.get<Logger>(SHARED_TYPES.Logger);
-  const eventBus = container.get<IEventBus>(SHARED_TYPES.EventBus);
-  const provider = container.get<OrdersProviderPort>(ORDERS_TYPES.OrdersProviderPort);
-  const idempotency = container.get<IdempotencyStorePort>(SHARED_TYPES.IdempotencyStorePort);
-  const groupId = process.env.KAFKA_ORDERS_GROUP ?? 'orders.sync.v1';
-  const pageLimit = Number(process.env.SHOPIFY_ORDERS_LIMIT ?? '100');
-  const requestDelayMs = Number(process.env.SHOPIFY_REQUEST_DELAY_MS ?? '0');
-  const maxRetries = Number(process.env.WORKER_RETRY_MAX ?? '5');
-  const onSyncRequested = new HandleOrdersSyncRequestedUseCase(eventBus, logger, pageLimit);
-  const onPageRequest = new HandleOrdersPageRequestUseCase(logger, provider, eventBus);
-  const onRetry = new HandleOrdersRetryUseCase(eventBus, logger);
-  const onPageFetched = new ProcessOrdersPageUseCase(logger);
-  return new OrdersSyncWorker(logger, eventBus, groupId, onSyncRequested, onPageRequest, onRetry, onPageFetched, idempotency, requestDelayMs, maxRetries);
+export function createOrdersSyncWorker(container: Container): OrdersSyncWorker {
+  return container.get(OrdersSyncWorker);
 }

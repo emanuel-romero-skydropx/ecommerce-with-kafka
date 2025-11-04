@@ -20,7 +20,10 @@ export class ShopifyOrdersProvider implements OrdersProviderPort {
   async fetchPage(params: { shopId: string; pageInfo?: string; limit: number; query?: Record<string, string> }): Promise<{ orders: unknown[]; nextPageInfo?: string }> {
     const spec = this.requestBuilder.build({ limit: params.limit, pageInfo: params.pageInfo });
     const response = await this.executor.execute<{ orders: Array<{ id: number | string; created_at?: string }> }>(spec);
-    const orders = this.orderMapper.toDomain(response.data as { orders: Array<{ id: number | string; created_at?: string }> });
+    const orders = this.orderMapper.toDomain(
+      response.data as { orders: Array<{ id: number | string; created_at?: string }> },
+      { shopId: params.shopId }
+    );
     const nextPageInfo = this.strategy.getNextCursor(response);
 
     return { orders, nextPageInfo };

@@ -1,45 +1,42 @@
 import 'reflect-metadata';
 import { Container } from 'inversify';
+import type { Logger } from 'pino';
 
-import { createLogger } from './modules/shared/infrastructure/logging/logger';
-import { createKafkaClient } from './modules/shared/infrastructure/kafka/kafkaClient';
-import { HttpClient } from './modules/shared/infrastructure/http/httpClient';
-import { loadEnv } from './modules/shared/infrastructure/config/env';
-import { InMemoryIdempotencyStore } from './modules/shared/infrastructure/idempotency/InMemoryIdempotencyStore';
-import { TYPES as SHARED_TYPES } from './modules/shared/domain/d-injection/types';
-import { registerOrdersModule } from './modules/orders/infrastructure/bootstrap/register.module';
-import { RequestExecutorAdapter } from './modules/shared/infrastructure/http/RequestExecutorAdapter';
-import { InMemoryCommandBus } from './modules/shared/infrastructure/cqrs/InMemoryCommandBus';
-import { InMemoryQueryBus } from './modules/shared/infrastructure/cqrs/InMemoryQueryBus';
-import { EventBus } from './modules/shared/infrastructure/eventbus/EventBus';
-import { KafkaEventTransport } from './modules/shared/infrastructure/eventbus/kafka/KafkaEventTransport';
+import { registerSharedModule } from './modules/shared/infrastructure/bootstrap/register.module';
+import { getOrdersHttpRouters, getOrdersWorkers, registerOrdersModule } from './modules/orders/infrastructure/bootstrap/register.module';
+import { TYPES } from './modules/shared/domain/d-injection/types';
+import { createHttpApp } from './drivers/http/server';
+import { connectToMongoDB } from './modules/shared/infrastructure/database/mongoose';
 
-export function buildContainer(): Container {
-  const env = loadEnv();
+export async function bootstrap() {
   const container = new Container({ defaultScope: 'Singleton' });
 
-  const logger = createLogger();
-  const kafka = createKafkaClient({
-    clientId: env.KAFKA_CLIENT_ID,
-    brokers: env.KAFKA_BROKERS.split(',').map((b) => b.trim()).filter(Boolean)
-  });
-  const httpClient = new HttpClient();
-
-  container.bind(SHARED_TYPES.Kafka).toConstantValue(kafka);
-  container.bind(SHARED_TYPES.Logger).toConstantValue(logger);
-
-  container.bind(SHARED_TYPES.HttpClient).toConstantValue(httpClient);
-  container.bind(SHARED_TYPES.RequestExecutorPort).toConstantValue(new RequestExecutorAdapter(httpClient));
-  container
-    .bind(SHARED_TYPES.IdempotencyStorePort)
-    .toConstantValue(new InMemoryIdempotencyStore());
-
-  container.bind(SHARED_TYPES.CommandBus).to(InMemoryCommandBus);
-  container.bind(SHARED_TYPES.QueryBus).to(InMemoryQueryBus);
-  container.bind(SHARED_TYPES.EventTransport).to(KafkaEventTransport);
-  container.bind(SHARED_TYPES.EventBus).to(EventBus);
-
+  registerSharedModule(container);
   registerOrdersModule(container);
 
-  return container;
+  const logger = container.get<Logger>(TYPES.Logger);
+  const mongoUri = process.env.MONGO_URI;
+  if (!mongoUri) {
+    logger.error('MONGO_URI is not defined');
+    process.exit(1);
+  }
+
+  await connectToMongoDB(mongoUri, logger);
+
+  const role = process.env.APP_ROLE ?? 'api';
+  logger.info(`Application running in role: ${role}`);
+
+  if (role === 'api') {
+    const routers = getOrdersHttpRouters(container);
+    const server = createHttpApp(routers);
+    const port = Number(process.env.PORT) || 3000;
+
+    server.listen(port, () => {
+      logger.info(`Server listening on port ${port}`);
+    });
+
+  } else if (role === 'worker' || role === 'workers') {
+    const [worker] = getOrdersWorkers(container);
+    await worker.start();
+  }
 }

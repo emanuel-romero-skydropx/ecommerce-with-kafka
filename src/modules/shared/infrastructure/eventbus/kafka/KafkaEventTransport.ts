@@ -12,7 +12,7 @@ export class KafkaEventTransport implements EventTransport {
   private readonly handlers = new Map<string, TransportHandler>();
   private readonly publisher: KafkaProducer;
   private consumer: KafkaConsumer | null = null;
-  private publisherStarted = false;
+  private started = false;
 
   constructor(
     @inject(SHARED_TYPES.Kafka) private readonly kafka: Kafka,
@@ -26,20 +26,20 @@ export class KafkaEventTransport implements EventTransport {
     this.logger.info({ topic }, 'kafka.transport.subscribe');
   }
 
-  private async verifyPublisherStarted(): Promise<void> {
-    if (this.publisherStarted) {
+  private async ensureStarted(): Promise<void> {
+    if (this.started) {
       this.logger.debug('kafka.transport.publisher.already.started');
       return;
     }
 
     this.logger.info('kafka.transport.publisher.starting');
     await this.publisher.start();
-    this.publisherStarted = true;
+    this.started = true;
   }
 
   async publish(message: TransportMessage): Promise<void> {
     this.logger.info({ topic: message.topic, key: message.key }, 'kafka.transport.publish');
-    await this.verifyPublisherStarted();
+    await this.ensureStarted();
 
     await this.publisher.send({ topic: message.topic, key: message.key, value: message.value });
   }
@@ -82,12 +82,12 @@ export class KafkaEventTransport implements EventTransport {
       }
     } finally {
       this.consumer = null;
-      if (this.publisherStarted) {
+      if (this.started) {
         try {
           this.logger.info('kafka.transport.publisher.stop');
           await this.publisher.stop();
         } finally {
-          this.publisherStarted = false;
+          this.started = false;
         }
       }
     }

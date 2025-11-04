@@ -53,6 +53,7 @@ export class KafkaConsumer implements Lifecycle {
         }
       }
     });
+
     this.started = true;
   }
 

@@ -21,6 +21,36 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
+    networks:
+      - kafka-net
+
+  kafka-ui:
+    image: provectuslabs/kafka-ui
+    container_name: kafka-ui
+    environment:
+      - KAFKA_CLUSTERS_0_NAME=local
+      - KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS=kafka:9092
+    ports:
+      - "8090:8080"
+    depends_on:
+      - kafka
+    networks:
+      - kafka-net
+
+  mongo:
+    image: mongo:latest
+    container_name: mongo
+    ports:
+      - '27017:27017'
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - mongo-data:/data/db
+    networks:
+      - kafka-net
 
   app:
     build: .
@@ -28,14 +58,19 @@ services:
     env_file: .env
     environment:
       - KAFKA_BROKERS=kafka:9092
+      - MONGO_URI=mongodb://mongo:27017/orders_db
       - PORT=8080
       - APP_ROLE=api
       - MODULES_ENABLED=orders
     depends_on:
       kafka:
         condition: service_healthy
+      mongo:
+        condition: service_healthy
     ports:
       - "8080:8080"
+    networks:
+      - kafka-net
 
   worker:
     build: .
@@ -43,10 +78,20 @@ services:
     env_file: .env
     environment:
       - KAFKA_BROKERS=kafka:9092
+      - MONGO_URI=mongodb://mongo:27017/orders_db
       - APP_ROLE=workers
       - MODULES_ENABLED=orders
     depends_on:
       kafka:
         condition: service_healthy
+    networks:
+      - kafka-net
+
+volumes:
+  kafka-data:
+  mongo-data:
+
+networks:
+  kafka-net:
 
 
