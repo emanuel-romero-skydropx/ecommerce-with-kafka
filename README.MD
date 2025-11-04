@@ -23,7 +23,7 @@ Esta POC demuestra cómo usar Kafka como procesador de colas para sincronizar ó
 
 ```mermaid
 flowchart LR
-  Client[[Client / Scripts]] -->|HTTP POST /api/orders/sync| API[API (Koa)]
+  Client[[Client / Scripts]] -->|HTTP POST /api/orders/sync| API[API - Koa]
   API -->|CommandBus| UC1[RequestOrdersSync]
   UC1 -->|EventBus.publish| KFK[(Kafka)]
 
@@ -40,8 +40,8 @@ flowchart LR
   KFK -->|orders.sync.page.processed| WRK1
   WRK1 --> UC4[ProcessOrdersPage]
   UC4 --> DB[(MongoDB)]
-  UC4 -->|orders.sync.page.requested (next)| KFK
-  UC4 -->|orders.sync.completed (done)| KFK
+  UC4 -->|orders.sync.page.requested next| KFK
+  UC4 -->|orders.sync.completed done| KFK
 ```
 
 
