@@ -349,6 +349,117 @@ Qué ocurre al subir/bajar réplicas durante la prueba:
 - Asignar particiones según paralelismo deseado (N réplicas → ≥ N particiones)
 - Reutilizar `EventWorker` y middlewares (idempotencia, retry, delay)
 
+Cada modulo debe tener su propio worker, cada modulo debe tener sus propios topics, y consumer group diferente
+
+### Separación por módulos/jobs y flujo
+
+```mermaid
+flowchart LR
+  %% Estilos
+  classDef api fill:#E8F4FF,stroke:#1E6FFF,stroke-width:1px,color:#0A3A8A;
+  classDef topic fill:#FFF4E5,stroke:#EF6C00,stroke-width:1px,color:#6D3300;
+  classDef worker fill:#EAFFEA,stroke:#2E7D32,stroke-width:1px,color:#15461A;
+
+  %% Web/API
+  subgraph Web_API
+    A1[API Pod 1]:::api
+    A2[API Pod 2]:::api
+  end
+
+  %% Kafka (Topics por módulo)
+  subgraph Kafka_Cluster
+    direction LR
+    subgraph Orders_Topics
+      OREQ[orders.sync.requested]:::topic
+      OPREQ[orders.sync.page.requested]:::topic
+      OPROC[orders.sync.page.processed]:::topic
+      OCPL[orders.sync.completed]:::topic
+      ORETRY[orders.sync.page.retry]:::topic
+      ODLQ[orders.sync.page.dlq]:::topic
+    end
+    subgraph Shops_Topics
+      SREQ[shops.sync.requested]:::topic
+      SPREQ[shops.sync.page.requested]:::topic
+      SPROC[shops.sync.page.processed]:::topic
+      SCPL[shops.sync.completed]:::topic
+      SRETRY[shops.sync.page.retry]:::topic
+      SDLQ[shops.sync.page.dlq]:::topic
+    end
+  end
+
+  %% Workers (Consumer groups por job)
+  subgraph Workers
+    direction LR
+    subgraph Orders_Sync_Group["Consumer Group: ORDERS_SYNC_GROUP"]
+      OW1[orders-worker-1]:::worker
+      OW2[orders-worker-2]:::worker
+      OW3[orders-worker-3]:::worker
+    end
+    subgraph Shops_Groups
+      subgraph Shops_Sync_Group["Consumer Group: SHOPS_SYNC_GROUP"]
+        SW1[shops-sync-worker-1]:::worker
+        SW2[shops-sync-worker-2]:::worker
+      end
+      subgraph Shops_Catalog_Group["Consumer Group: SHOPS_CATALOG_GROUP"]
+        SC1[shops-catalog-worker-1]:::worker
+      end
+    end
+  end
+
+  %% Publicación desde API
+  A1 -->|publish| OREQ
+  A1 -->|publish| SREQ
+  A2 -->|publish| OREQ
+  A2 -->|publish| SREQ
+
+  %% Consumo (cada tópico por su grupo)
+  OREQ --> OW1
+  OPREQ --> OW2
+  OPROC --> OW3
+  SREQ --> SW1
+  SPREQ --> SW2
+  SPROC --> SC1
+```
+
+
+### Escalado: particiones vs réplicas por pipeline
+
+```mermaid
+flowchart LR
+  %% Orders
+  subgraph Topic_orders_sync_page_requested
+    OP0((P0))
+    OP1((P1))
+    OP2((P2))
+    OP3((P3))
+  end
+  subgraph Consumer_Group_ORDERS_SYNC
+    OW1[orders-worker-1]
+    OW2[orders-worker-2]
+    OW3[orders-worker-3]
+  end
+  OP0 --> OW1
+  OP1 --> OW2
+  OP2 --> OW3
+  OP3 --> OW1
+
+  %% Shops
+  subgraph Topic_shops_sync_page_requested
+    SP0((P0))
+    SP1((P1))
+  end
+  subgraph Consumer_Group_SHOPS_SYNC
+    SW1[shops-worker-1]
+    SW2[shops-worker-2]
+    SW3[shops-worker-3]
+    SW4[shops-worker-4]
+  end
+  SP0 --> SW1
+  SP1 --> SW2
+```
+
+
+
 
 ## Límites de la POC y próximos pasos
 
